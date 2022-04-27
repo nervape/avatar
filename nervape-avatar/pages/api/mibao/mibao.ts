@@ -11,6 +11,14 @@ const mbKey = "bls2RtJtJOULTw3h";
 const mbSecret =
   "faf57e6b2f20e4e74f0a0202574325267c34c36f395084ec803d9cd05562c025";
 
+// UnipassUserName:quaye
+// UnipassAddress:ckt1qr2pg3dys3dqnstr6960t9jysa6x2ugqx9vz7eqt5ts3gdasqkupyqdwuvk9n9zqxtt6mmmknmtywnlqajz2yjqrcrxmu
+// UnipassBalance:0
+
+// UnipassUserName:quaye_en
+// UnipassAddress:ckt1qr2pg3dys3dqnstr6960t9jysa6x2ugqx9vz7eqt5ts3gdasqkupyqfhh27r2zp9cjv5jxfnpu9a6z2kwtnsnuqgp6l9d
+// UnipassBalance:0
+
 export class MibaoApi {
   fnGetSignature(
     secret: string,
@@ -168,13 +176,17 @@ export class MibaoApi {
     return res;
   };
 
-  /**
-   * 查询 NFT token
-   * @param {*} token_uuid 铸造并分发秘宝时返回的 token uuid
-   */
-  fnGetTokenInfo = async (token_uuid: string) => {
+  async fnGetAddressByToken(token_uuid: string) {
     const method = "GET";
-    const endpoint = `${mbApiVersion}/tokens/${token_uuid}`;
-    return await this.fnMiBaoRequest(method, endpoint);
-  };
+    const endpoint = `${mbApiVersion}/tokens/${token_uuid}/address`;
+    const res = await this.fnMiBaoRequest(method, endpoint);
+    return res;
+  }
+
+  async fnGetTokenByAddress(address: string) {
+    const method = "GET";
+    const endpoint = `${mbApiVersion}/indexer/holder_tokens/${address}`;
+    const res = await this.fnMiBaoRequest(method, endpoint);
+    return res;
+  }
 }

@@ -1,0 +1,12 @@
+{
+    "type": "request",
+    "method": "GET",
+    "url": "https://goldenlegend.staging.nervina.cn/api/v1/tokens/b392f458-9b4b-468a-ace5-810f1ca4ece1/address",
+    "content": "",
+    "signature": "hrTkVvMmHEzE56z3uk83sWmE8Wg=",
+    "header": {
+        "Authorization": "NFT bls2RtJtJOULTw3h:hrTkVvMmHEzE56z3uk83sWmE8Wg=",
+        "Date": "Wed, 27 Apr 2022 09:39:16 GMT",
+        "Content-Type": "application/json"
+    }
+}

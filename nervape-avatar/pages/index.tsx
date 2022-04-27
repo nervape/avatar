@@ -16,6 +16,7 @@ interface HomeState {
   UnipassBalance: String;
 
   MibaoData: any[];
+  searchAddress: string;
 }
 
 export default class Home extends Component<HomeProps, HomeState> {
@@ -27,10 +28,14 @@ export default class Home extends Component<HomeProps, HomeState> {
       UnipassBalance: "",
 
       MibaoData: [],
+      searchAddress:
+        "ckt1qsfy5cxd0x0pl09xvsvkmert8alsajm38qfnmjh2fzfu2804kq47drtdkrgrjy479df0s4wf4hr2zygt2tv45mdth3r",
     };
     this.fnLoginWithUnipass = this.fnLoginWithUnipass.bind(this);
     this.fnCreateMibaoNft = this.fnCreateMibaoNft.bind(this);
     this.fnReadMibaoNft = this.fnReadMibaoNft.bind(this);
+    this.fnGetTokenByAddress = this.fnGetTokenByAddress.bind(this);
+    this.fnGetAddressByToken = this.fnGetAddressByToken.bind(this);
   }
   async fnLoginWithUnipass() {
     const { username, myAddress, myBalance } = await unipass.fnConnect();
@@ -66,6 +71,32 @@ export default class Home extends Component<HomeProps, HomeState> {
     });
   }
 
+  async fnGetTokenByAddress(address: string) {
+    console.log("address", address);
+    const result = await axios.get(
+      "http://localhost:3000/api/mibao/get-token-by-address",
+      {
+        params: {
+          address: address,
+        },
+      }
+    );
+    console.log("get token by address:", result);
+  }
+
+  async fnGetAddressByToken(token: string) {
+    console.log("token", token);
+    const result = await axios.get(
+      "http://localhost:3000/api/mibao/get-address-by-token",
+      {
+        params: {
+          token_uuid: token,
+        },
+      }
+    );
+    console.log("get token by address:", result);
+  }
+
   render() {
     console.log("index render");
     const { UnipassUserName, UnipassAddress, UnipassBalance, MibaoData } =
@@ -93,10 +124,6 @@ export default class Home extends Component<HomeProps, HomeState> {
           read mibao nft info
         </button>
 
-        <div>
-          from:
-          ckt1qsfy5cxd0x0pl09xvsvkmert8alsajm38qfnmjh2fzfu2804kq47drtdkrgrjy479df0s4wf4hr2zygt2tv45mdth3r
-        </div>
         {MibaoData.map((v, i) => {
           return (
             <span key={i}>
@@ -108,9 +135,39 @@ export default class Home extends Component<HomeProps, HomeState> {
               <div>issued: {v.issued}</div> <div>is_banned: {v.is_banned}</div>{" "}
               <div>cover_image_url: {v.cover_image_url}</div>{" "}
               <div>renderer: {v.renderer}</div> */}
+              <button
+                onClick={() => {
+                  this.fnGetAddressByToken(v.uuid);
+                }}
+                style={{ height: "50px" }}
+              >
+                read mibao nft info
+              </button>
             </span>
           );
         })}
+
+        <div>
+          <div>---</div>
+          <input
+            type="text"
+            style={{ width: "700px" }}
+            defaultValue={this.state.searchAddress}
+            onChange={(event) => {
+              this.setState({
+                searchAddress: event.target.value,
+              });
+            }}
+          />
+          <button
+            onClick={() => {
+              this.fnGetTokenByAddress(this.state.searchAddress);
+            }}
+            style={{}}
+          >
+            get token by address
+          </button>
+        </div>
       </div>
     );
   }
