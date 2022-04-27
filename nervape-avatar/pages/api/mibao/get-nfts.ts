@@ -9,7 +9,5 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const mRes = await mibao.fnGetTokenClasses();
-  //   const mRes = { hehe: " await mibao.fnGetTokenClasses()" };
-  console.log("router in !!!!");
-  res.status(200).json({ ...mRes });
+  res.status(200).json({...mRes.data})
 }

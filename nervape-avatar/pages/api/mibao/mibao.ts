@@ -7,9 +7,9 @@ const { Base64 } = enc;
 
 const mbHost = "https://goldenlegend.staging.nervina.cn";
 const mbApiVersion = "/api/v1";
-const mbKey = "UzDRB64JNG5IgP8h";
+const mbKey = "bls2RtJtJOULTw3h";
 const mbSecret =
-  "e46c34d2de1260d8d9323ee1967c8adf246fe567c0ed50485cce1c535efddf67";
+  "faf57e6b2f20e4e74f0a0202574325267c34c36f395084ec803d9cd05562c025";
 
 export class MibaoApi {
   fnGetSignature(
@@ -55,6 +55,13 @@ export class MibaoApi {
     // const content_type = "application/json";
     // const gmt = "Tue, 06 Jul 2021 00:00:34 GMT";
 
+    console.log("key", key);
+    console.log("secret", secret);
+    console.log("method", method);
+    console.log("content", content);
+    console.log("content_type", content_type);
+    console.log("gmt", gmt);
+
     const signature = this.fnGetSignature(
       secret,
       method,
@@ -65,6 +72,13 @@ export class MibaoApi {
     );
     const cutVersion = endpoint.replace(mbApiVersion, "");
     const url = `${mbHost}${mbApiVersion}${cutVersion}`;
+
+    const header = {
+      Authorization: `NFT ${key}:${signature}`,
+      Date: gmt,
+      "Content-Type": content_type,
+    };
+
     console.log(
       JSON.stringify({
         type: "request",
@@ -72,16 +86,13 @@ export class MibaoApi {
         url,
         content,
         signature,
+        header,
       })
     );
     const res = await axios.request({
       method,
       url,
-      headers: {
-        Authorization: `NFT ${key}:${signature}`,
-        Date: gmt,
-        "Content-Type": content_type,
-      },
+      headers: header,
       data: content === "" ? undefined : content,
     });
 
@@ -167,4 +178,3 @@ export class MibaoApi {
     return await this.fnMiBaoRequest(method, endpoint);
   };
 }
-    
