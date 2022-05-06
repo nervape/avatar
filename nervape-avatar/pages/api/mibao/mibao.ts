@@ -11,14 +11,6 @@ const mbKey = "bls2RtJtJOULTw3h";
 const mbSecret =
   "faf57e6b2f20e4e74f0a0202574325267c34c36f395084ec803d9cd05562c025";
 
-// UnipassUserName:quaye
-// UnipassAddress:ckt1qr2pg3dys3dqnstr6960t9jysa6x2ugqx9vz7eqt5ts3gdasqkupyqdwuvk9n9zqxtt6mmmknmtywnlqajz2yjqrcrxmu
-// UnipassBalance:0
-
-// UnipassUserName:quaye_en
-// UnipassAddress:ckt1qr2pg3dys3dqnstr6960t9jysa6x2ugqx9vz7eqt5ts3gdasqkupyqfhh27r2zp9cjv5jxfnpu9a6z2kwtnsnuqgp6l9d
-// UnipassBalance:0
-
 export class MibaoApi {
   fnGetSignature(
     secret: string,
@@ -44,7 +36,7 @@ export class MibaoApi {
    * @param {*} endpoint
    * @param {*} content
    */
-  async fnMiBaoRequest(m: Method, e: string, c = "") {
+  async fnMiBaoRequest(m: Method, e: string, c: any = "") {
     // 运行时数据
     const key = mbKey;
     const secret = mbSecret;
@@ -74,7 +66,7 @@ export class MibaoApi {
       secret,
       method,
       endpoint,
-      content,
+      typeof content === "string" ? content : JSON.stringify(content),
       gmt,
       content_type
     );
@@ -164,7 +156,7 @@ export class MibaoApi {
    * @param {*} token_class_uuid 设计秘宝时返回的 token class uuid
    * @param {*} addresses 一个由 ckb 地址组成的列表:[ add1 , add2 ]
    */
-  fnDistributeToken = async (token_class_uuid: string, addresses: string) => {
+  fnDistributeToken = async (token_class_uuid: string, addresses: string[]) => {
     const method = "POST";
     const endpoint = `${mbApiVersion}/token_classes/${token_class_uuid}/tokens`;
     const content = { addresses };
@@ -187,6 +179,37 @@ export class MibaoApi {
     const method = "GET";
     const endpoint = `${mbApiVersion}/indexer/holder_tokens/${address}`;
     const res = await this.fnMiBaoRequest(method, endpoint);
+    return res;
+  }
+
+  async fnTransferTokenNew(
+    from_address: string,
+    to_address: string,
+    token_uuid: string
+  ) {
+    console.log("========fnTransferTokenNew   in",)
+    const method = "GET";
+    const endpoint = `${mbApiVersion}/tx/token_transfers/new?from_address=${from_address}&to_address=${to_address}&token_uuid=${token_uuid}`;
+    const res = await this.fnMiBaoRequest(method, endpoint);
+    console.log("========fnTransferTokenNew   out",)
+
+    return res;
+  }
+
+  async fnTransfer(
+    from_address: string,
+    to_address: string,
+    token_uuid: string,
+    signed_tx: string
+  ) {
+    console.log("from:", from_address);
+    console.log("to_address:", to_address);
+    console.log("token_uuid:", token_uuid);
+    console.log("signed_tx:", signed_tx);
+    const method = "POST";
+    const endpoint = `${mbApiVersion}/tx/token_transfers`;
+    const content = { from_address, to_address, token_uuid, signed_tx };
+    const res = await this.fnMiBaoRequest(method, endpoint, content);
     return res;
   }
 }

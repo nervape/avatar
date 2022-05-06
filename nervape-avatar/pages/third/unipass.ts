@@ -9,16 +9,16 @@ import PWCore, {
 } from "@lay2/pw-core";
 
 // # demo.app.unipass.id
-const UNIPASS_URL = "d.app.unipass.id";
+const UNIPASS_URL = "t.app.unipass.id";
 const ASSET_LOCK_CODE_HASH =
-  "0xd41445a4845a09c163d174f59644877465710031582f640ba2e11437b005b812";
+  "0x3e1eb7ed4809b2d60650be96a40abfbdafb3fb942b7b37ec7709e64e2cd0a783";
 
 const CKB_NODE_URL = "https://testnet.ckb.dev";
 const CKB_INDEXER_URL = "https://testnet.ckb.dev/indexer";
 // # ckb 0 ckb_testnet 1 ckb_dev 2
 const PW_CORE_CHAIN_ID = 1;
 
-const AGGREGATOR_URL = "https://d.aggregator.unipass.id/dev/";
+const AGGREGATOR_URL = "https://t.aggregator.unipass.id/dev/";
 
 export class UnipassApi {
   constructor() {
@@ -64,5 +64,22 @@ export class UnipassApi {
     console.log(`myBalance:${myBalance}`);
 
     return { username, myAddress, myBalance };
+  }
+
+  async fnAuthorize(username: string, message: string) {
+    console.log("authorize clicked");
+    console.log({
+      username,
+      message,
+    });
+    try {
+      const resp = await UP.authorize(
+        new UPAuthMessage("PLAIN_MSG", username, message)
+      );
+      console.log("resp", resp);
+      return resp;
+    } catch (err) {
+      console.error("auth err", err);
+    }
   }
 }
