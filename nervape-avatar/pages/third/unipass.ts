@@ -6,7 +6,12 @@ import PWCore, {
   AddressType,
   Amount,
   ChainID,
+  RawTransaction,
+  RPC,
 } from "@lay2/pw-core";
+import { SHA256 } from "crypto-js";
+import { createHash } from "crypto";
+import axios from "axios";
 
 // # demo.app.unipass.id
 const UNIPASS_URL = "t.app.unipass.id";
@@ -81,5 +86,22 @@ export class UnipassApi {
     } catch (err) {
       console.error("auth err", err);
     }
+  }
+
+  async fnGetSnapInfo(name: string) {
+    const username = createHash("sha256").update(name).digest("hex");
+    console.log(username);
+    // const url = " https://aggregator.unipass.id/snapshot"
+    const url = "https://t.aggregator.unipass.id/snapshot/";
+
+    const result = await axios.post(url, {
+      jsonrpc: "2.0",
+      method: "get_asset_lock_tx_info",
+      params: [`0x${username}`],
+      id: "1",
+    });
+    console.log(result);
+
+    return result.data.result;
   }
 }

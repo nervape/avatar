@@ -7,6 +7,9 @@ import { UnipassApi } from "./third/unipass";
 import { MibaoApi } from "./api/mibao/mibao";
 import axios from "axios";
 import moment from "moment";
+import { createHash, createPublicKey } from "crypto";
+import { normalizers, Reader, SerializeWitnessArgs } from "@lay2/pw-core";
+import { SerializeAssetLockWitness } from "./third/up-lock-witness";
 
 const unipass = new UnipassApi();
 interface HomeProps {}
@@ -14,7 +17,11 @@ interface HomeState {
   UnipassUserName: string;
   UnipassAddress: string;
   UnipassBalance: string;
-  UnipassSignature: string;
+  UnipassSignature: {
+    keyType: string;
+    pubkey: string;
+    sig: string;
+  };
 
   MibaoData: any[];
   distributeToken: string;
@@ -35,7 +42,11 @@ export default class Home extends Component<HomeProps, HomeState> {
       UnipassUserName: "",
       UnipassAddress: "",
       UnipassBalance: "",
-      UnipassSignature: "",
+      UnipassSignature: {
+        keyType: "",
+        pubkey: "",
+        sig: "",
+      },
 
       MibaoData: [],
       distributeToken: "",
@@ -68,7 +79,9 @@ export default class Home extends Component<HomeProps, HomeState> {
   }
   async fnAuthWithUnipass(username: string, message: string) {
     const sigRes: any = await unipass.fnAuthorize(username, message);
-    this.setState({ UnipassSignature: sigRes.sig });
+    this.setState({
+      UnipassSignature: sigRes,
+    });
   }
 
   async fnCreateMibaoNft() {
@@ -145,7 +158,7 @@ export default class Home extends Component<HomeProps, HomeState> {
     console.log("to", to);
     console.log("token", token);
     const result = await axios.post(
-      "http://localhost:3000/api/mibao/get_unsigned_tx",
+      "http://localhost:3000/api/mibao/get-unsigned-tx",
       {
         from,
         to,
@@ -157,13 +170,14 @@ export default class Home extends Component<HomeProps, HomeState> {
       transferUnsignedTx: JSON.stringify(result.data.unsigned_tx),
     });
   }
+
   async fnTransfer(from: string, to: string, token: string, tx: string) {
     console.log("token", from);
     console.log("to", to);
     console.log("token", token);
     console.log("tx", tx);
     const result = await axios.post(
-      "http://localhost:3000/api/mibao/transer_signed_tx",
+      "http://localhost:3000/api/mibao/transfer-signed-tx",
       {
         from,
         to,
@@ -198,7 +212,7 @@ export default class Home extends Component<HomeProps, HomeState> {
             onClick={() => {
               this.fnAuthWithUnipass(
                 this.state.UnipassUserName,
-                this.state.transferUnsignedTx
+                "my auth message"
               );
             }}
           >
@@ -206,7 +220,9 @@ export default class Home extends Component<HomeProps, HomeState> {
           </button>
         </div>
         <div style={{ width: "800px", wordWrap: "break-word" }}>
-          sig: {this.state.UnipassSignature}
+          <p>keyType: {this.state.UnipassSignature.keyType}</p>
+          <p>pubkey: {this.state.UnipassSignature.pubkey}</p>
+          <p>sig: {this.state.UnipassSignature.sig}</p>
         </div>
         {/* mibao */}
         <h1> ----------- Mibao ----------- </h1>
@@ -365,15 +381,57 @@ export default class Home extends Component<HomeProps, HomeState> {
           </button>
 
           <button
-            onClick={() => {
-              const tx = JSON.parse(this.state.transferUnsignedTx);
-              tx.witnesses[0] = this.state.UnipassSignature;
-              console.log("signed tx", tx);
+            onClick={async () => {
+              console.log("click ------------------ in");
+              const userName = this.state.UnipassUserName;
+
+              const snapinfo = await unipass.fnGetSnapInfo(userName);
+              console.log("snap info ", snapinfo);
+              const usernameHash = snapinfo.lock_info[0].username;
+              console.log("usernameHash", usernameHash);
+              const userinfo = snapinfo.lock_info[0].user_info;
+              console.log("userinfo", userinfo);
+              const sigRes = this.state.UnipassSignature;
+              console.log("sigRes", sigRes);
+              const user_info_smt_proof = snapinfo.user_info_smt_proof;
+              console.log("user_info_smt_proof", user_info_smt_proof);
+
+              const keyType = sigRes.keyType;
+              const pubkey = sigRes.pubkey;
+              const sig = sigRes.sig;
+
+              const witnessLock = SerializeAssetLockWitness({
+                pubkey: {
+                  type: keyType,
+                  value: {
+                    e: new Reader(pubkey.slice(0, 10)),
+                    n: new Reader(`0x${pubkey.slice(10)}`),
+                  },
+                }, // pubkey
+                sig: new Reader(sig), // sig
+                username: new Reader(usernameHash), // usernameHash from snapshot
+                user_info: new Reader(userinfo), // user_info from snapshot rpc
+                user_info_smt_proof: new Reader(user_info_smt_proof), // smt proof from snapshot url
+              });
+
+              console.log("witness", witnessLock);
+              const cell_deps = snapinfo.cell_deps;
+              const unsigned_tx = JSON.parse(this.state.transferUnsignedTx);
+              unsigned_tx.cell_deps.push(...cell_deps);
+              unsigned_tx.witnesses[0] = new Reader(
+                SerializeWitnessArgs(
+                  normalizers.NormalizeWitnessArgs({
+                    lock: witnessLock,
+                  })
+                )
+              ).serializeJson();
+
+              console.log("signed tx", unsigned_tx);
               this.fnTransfer(
                 this.state.transferFrom,
                 this.state.transferTo,
                 this.state.transferToken,
-                JSON.stringify(tx)
+                JSON.stringify(unsigned_tx)
               );
             }}
           >
