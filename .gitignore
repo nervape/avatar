@@ -102,3 +102,6 @@ dist
 
 # TernJS port file
 .tern-port
+signed-tx-05071626.json
+signed-tx.json
+unsigned-tx.json

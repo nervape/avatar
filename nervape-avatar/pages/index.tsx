@@ -8,7 +8,15 @@ import { MibaoApi } from "./api/mibao/mibao";
 import axios from "axios";
 import moment from "moment";
 import { createHash, createPublicKey } from "crypto";
-import { normalizers, Reader, SerializeWitnessArgs } from "@lay2/pw-core";
+import {
+  Cell,
+  normalizers,
+  OutPoint,
+  RawTransaction,
+  Reader,
+  RPC,
+  SerializeWitnessArgs,
+} from "@lay2/pw-core";
 import { SerializeAssetLockWitness } from "./third/up-lock-witness";
 
 const unipass = new UnipassApi();
@@ -216,7 +224,7 @@ export default class Home extends Component<HomeProps, HomeState> {
               );
             }}
           >
-            auth unipass
+            auth unipass test
           </button>
         </div>
         <div style={{ width: "800px", wordWrap: "break-word" }}>
@@ -384,55 +392,60 @@ export default class Home extends Component<HomeProps, HomeState> {
             onClick={async () => {
               console.log("click ------------------ in");
               const userName = this.state.UnipassUserName;
+              const test_tx = `{"version":"0x0","cell_deps":[{"out_point":{"tx_hash":"0xf11ccb6079c1a4b3d86abe2c574c5db8d2fd3505fdc1d5970b69b31864a4bd1c","index":"0x2"},"dep_type":"code"}],"header_deps":[],"inputs":[{"previous_output":{"tx_hash":"0xb0877934de419d3c0a87c189eaed464998338f165ba5f85168e50887af033a68","index":"0x1"},"since":"0x0"}],"outputs":[{"capacity":"0x31eb3a4cc","lock":{"code_hash":"0x3e1eb7ed4809b2d60650be96a40abfbdafb3fb942b7b37ec7709e64e2cd0a783","args":"0x37babc350825c4994919330f0bdd095672e709f0","hash_type":"type"},"type":{"code_hash":"0xb1837b5ad01a88558731953062d1f5cb547adf89ece01e8934a9f0aeed2d959f","args":"0x53b9a6b381e5f02408ab81bea5462c179f475b7b0000000900000002","hash_type":"type"}}],"outputs_data":["0x000000000000000000c000"],"witnesses":["0x"]}`;
+              const tx_clone = JSON.parse(test_tx);
+              unipass.fnTranscationSinature(tx_clone);
 
-              const snapinfo = await unipass.fnGetSnapInfo(userName);
-              console.log("snap info ", snapinfo);
-              const usernameHash = snapinfo.lock_info[0].username;
-              console.log("usernameHash", usernameHash);
-              const userinfo = snapinfo.lock_info[0].user_info;
-              console.log("userinfo", userinfo);
-              const sigRes = this.state.UnipassSignature;
-              console.log("sigRes", sigRes);
-              const user_info_smt_proof = snapinfo.user_info_smt_proof;
-              console.log("user_info_smt_proof", user_info_smt_proof);
+              //
+              // const sigRes = this.state.UnipassSignature;
+              // console.log("sigRes", sigRes);
 
-              const keyType = sigRes.keyType;
-              const pubkey = sigRes.pubkey;
-              const sig = sigRes.sig;
+              // const keyType = sigRes.keyType;
+              // const pubkey = sigRes.pubkey;
+              // const sig = sigRes.sig;
 
-              const witnessLock = SerializeAssetLockWitness({
-                pubkey: {
-                  type: keyType,
-                  value: {
-                    e: new Reader(pubkey.slice(0, 10)),
-                    n: new Reader(`0x${pubkey.slice(10)}`),
-                  },
-                }, // pubkey
-                sig: new Reader(sig), // sig
-                username: new Reader(usernameHash), // usernameHash from snapshot
-                user_info: new Reader(userinfo), // user_info from snapshot rpc
-                user_info_smt_proof: new Reader(user_info_smt_proof), // smt proof from snapshot url
-              });
+              // const snapinfo = await unipass.fnGetSnapInfo(userName);
+              // console.log("snap info ", snapinfo);
+              // const usernameHash = snapinfo.lock_info[0].username;
+              // console.log("usernameHash", usernameHash);
+              // const userinfo = snapinfo.lock_info[0].user_info;
+              // console.log("userinfo", userinfo);
+              // const user_info_smt_proof = snapinfo.user_info_smt_proof;
+              // console.log("user_info_smt_proof", user_info_smt_proof);
 
-              console.log("witness", witnessLock);
-              const cell_deps = snapinfo.cell_deps;
-              const unsigned_tx = JSON.parse(this.state.transferUnsignedTx);
-              unsigned_tx.cell_deps.push(...cell_deps);
-              unsigned_tx.witnesses[0] = new Reader(
-                SerializeWitnessArgs(
-                  normalizers.NormalizeWitnessArgs({
-                    lock: witnessLock,
-                  })
-                )
-              ).serializeJson();
+              // const witnessLock = SerializeAssetLockWitness({
+              //   pubkey: {
+              //     type: keyType,
+              //     value: {
+              //       e: new Reader(pubkey.slice(0, 10)),
+              //       n: new Reader(`0x${pubkey.slice(10)}`),
+              //     },
+              //   }, // pubkey
+              //   sig: new Reader(sig), // sig
+              //   username: new Reader(usernameHash), // usernameHash from snapshot
+              //   user_info: new Reader(userinfo), // user_info from snapshot rpc
+              //   user_info_smt_proof: new Reader(user_info_smt_proof), // smt proof from snapshot url
+              // });
 
-              console.log("signed tx", unsigned_tx);
-              this.fnTransfer(
-                this.state.transferFrom,
-                this.state.transferTo,
-                this.state.transferToken,
-                JSON.stringify(unsigned_tx)
-              );
+              // console.log("witness", witnessLock);
+              // const cell_deps = snapinfo.cell_deps;
+              // const unsigned_tx = JSON.parse(this.state.transferUnsignedTx);
+              // unsigned_tx.cell_deps.push(...cell_deps);
+              // unsigned_tx.witnesses[0] = new Reader(
+              //   SerializeWitnessArgs(
+              //     normalizers.NormalizeWitnessArgs({
+              //       lock: witnessLock,
+              //     })
+              //   )
+              // ).serializeJson();
+
+              // console.log("signed tx", unsigned_tx);
+              // this.fnTransfer(
+              //   this.state.transferFrom,
+              //   this.state.transferTo,
+              //   this.state.transferToken,
+              //   JSON.stringify(unsigned_tx)
+              // );
             }}
           >
             transfer

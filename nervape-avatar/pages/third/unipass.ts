@@ -8,10 +8,16 @@ import PWCore, {
   ChainID,
   RawTransaction,
   RPC,
+  OutPoint,
+  Cell,
+  Script,
+  Transaction,
+  Builder,
 } from "@lay2/pw-core";
 import { SHA256 } from "crypto-js";
 import { createHash } from "crypto";
 import axios from "axios";
+import { blake2b } from "blakejs";
 
 // # demo.app.unipass.id
 const UNIPASS_URL = "t.app.unipass.id";
@@ -103,5 +109,44 @@ export class UnipassApi {
     console.log(result);
 
     return result.data.result;
+  }
+
+  async fnTranscationSinature(tx_clone: any) {
+    console.log("----- fnTranscationSinature");
+    const iCells = [];
+    console.log(tx_clone);
+    for (let i = 0; i < tx_clone.inputs.length; i++) {
+      const input = tx_clone.inputs[i];
+      console.log("input", i, input);
+      const rpc = new RPC(CKB_NODE_URL);
+      const op = new OutPoint(
+        input.previous_output.tx_hash,
+        input.previous_output.index
+      );
+      const cell = await Cell.loadFromBlockchain(rpc, op);
+      iCells.push(cell);
+    }
+
+    const oCells = [];
+    for (let i = 0; i < tx_clone.outputs.length; i++) {
+      const output = tx_clone.outputs[i];
+      console.log("output", i, output);
+      const capacity = new Amount(output.capacity);
+      const lockScript = (await Script.fromRPC(output.lock)) as Script;
+      const typeScript = (await Script.fromRPC(output.type)) as Script;
+      const cell = new Cell(capacity, lockScript, typeScript);
+      oCells.push(cell);
+    }
+    console.log("iCells", iCells);
+    console.log("oCells", oCells);
+
+    // const transac = new Transaction( new RawTransaction(iCells, oCells), [
+    //   Builder.WITNESS_ARGS.RawSecp256k1,
+    // ]);
+    const rawTransac = new RawTransaction(iCells, oCells, []);
+    const tx_hash = rawTransac.toHash();
+    console.log(tx_hash);
+
+    // blake2b("input", "key", "outlen");
   }
 }
