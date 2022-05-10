@@ -18,10 +18,8 @@ import PWCore, {
   SerializeWitnessArgs,
   normalizers,
 } from "@lay2/pw-core";
-import { SHA256 } from "crypto-js";
 import { createHash } from "crypto";
 import axios from "axios";
-import { blake2b } from "blakejs";
 import { SerializeAssetLockWitness } from "./up-lock-witness";
 
 // # demo.app.unipass.id
@@ -116,13 +114,13 @@ export class UnipassApi {
     return result.data.result;
   }
 
-  async fnGetDigestMessage(tx_clone: any) {
-    console.log("----- fnGetDigestMessage");
+  async fnGetDigestMessage(tx_clone: any, placeholderLength: number) {
+    console.log("----- fnGetDigestMessage", tx_clone);
+
     // Note: When calculating txhash, cell deps must be removed first. The purpose is to let the user only sign one time when dep cell changed.
     tx_clone.cell_deps = [];
 
     const iCells = [];
-    console.log(tx_clone);
     for (let i = 0; i < tx_clone.inputs.length; i++) {
       const input = tx_clone.inputs[i];
       console.log("input", i, input);
@@ -134,7 +132,6 @@ export class UnipassApi {
       const cell = await Cell.loadFromBlockchain(rpc, op);
       iCells.push(cell);
     }
-
     const oCells = [];
     for (let i = 0; i < tx_clone.outputs.length; i++) {
       const output = tx_clone.outputs[i];
@@ -159,25 +156,28 @@ export class UnipassApi {
     //   extra_witness
     // );
     const bhashder = new Blake2bHasher();
-    const arrayTxHash = new Reader(tx_hash).toArrayBuffer();
+    const rawTxHash = new Reader(tx_hash).toArrayBuffer();
 
-    const grouped_input_witnesses = [
-      {
-        lock: new Reader("0x" + "0".repeat(130)),
-        input_type: undefined, // 暂时先不写
-        output_type: undefined, // 暂时先不写
-      },
-    ];
-    const serWit0 = SerializeWitnessArgs(grouped_input_witnesses[0]);
+    // const grouped_input_witnesses = [
+    //   {
+    //     lock: new Reader("0x" + "0".repeat(130)),
+    //     input_type: undefined, // 暂时先不写
+    //     output_type: undefined, // 暂时先不写
+    //   },
+    // ];
+    // const unsignedWitness = SerializeWitnessArgs(grouped_input_witnesses[0]);
+    const unsignedWitness = SerializeWitnessArgs({
+      lock: Buffer.alloc(placeholderLength).buffer,
+    });
 
     const lengthBuf = new ArrayBuffer(8);
     const view = new DataView(lengthBuf);
-    view.setBigUint64(0, BigInt(serWit0.byteLength), true);
+    view.setBigUint64(0, BigInt(unsignedWitness.byteLength), true);
 
     const digest_message = bhashder
-      .update(arrayTxHash)
+      .update(rawTxHash)
       .update(lengthBuf)
-      .update(serWit0)
+      .update(unsignedWitness)
       .digest();
     const message = digest_message.serializeJson();
     console.log("digest_message", digest_message);
@@ -185,27 +185,59 @@ export class UnipassApi {
     return { digest_message, message };
   }
 
-  async fnTranscationSinature(userName: string, tx_clone: any) {
-    const unSignedTx = { ...tx_clone };
-    const { message } = await this.fnGetDigestMessage({ ...tx_clone });
+  async fnTestPreAuthInfo(userName: string) {
+    const snapinfo = await this.fnGetSnapInfo(userName);
+    const usernameHash = snapinfo.lock_info[0].username;
+    const userinfo = snapinfo.lock_info[0].user_info;
+    const user_info_smt_proof = snapinfo.user_info_smt_proof;
 
-    console.log("----- fnTranscationSinature");
+    const preAuth = await UP.authorize(
+      new UPAuthMessage("PLAIN_MSG", userName, "message")
+    );
+    const placeholderLength = SerializeAssetLockWitness({
+      pubkey: {
+        type: preAuth.keyType,
+        value: {
+          e: new Reader(preAuth.pubkey.slice(0, 10)),
+          n: new Reader(`0x${preAuth.pubkey.slice(10)}`),
+        },
+      }, // pubkey
+      sig: new Reader(preAuth.sig), // 先签一笔随意的交易，确定 signature 的长度
+      username: new Reader(usernameHash), // usernameHash from snapshot
+      user_info: new Reader(userinfo), // user_info from snapshot rpc
+      user_info_smt_proof: new Reader(user_info_smt_proof), // smt proof from snapshot url
+    });
+    // 得到 placeholderLength.byteLength = 1307
+    console.log("fnTestPreAuthInfo", placeholderLength.byteLength);
+  }
+
+  async fnTranscationSignature(userName: string, tx_clone: any) {
+    const unSignedTx = { ...tx_clone };
+    const snapinfo = await this.fnGetSnapInfo(userName);
+    const usernameHash = snapinfo.lock_info[0].username;
+    const userinfo = snapinfo.lock_info[0].user_info;
+    const user_info_smt_proof = snapinfo.user_info_smt_proof;
+
+    // console.log("snap info ", snapinfo);
+    // console.log("usernameHash", usernameHash);
+    // console.log("userinfo", userinfo);
+    // console.log("user_info_smt_proof", user_info_smt_proof);
+
+    // 0. 先签一笔交易，确定 signature 的长度
+    // await this.fnTestPreAuthInfo(userName);
+
+    // 1. 获取 digest_message
+    const { message } = await this.fnGetDigestMessage({ ...tx_clone }, 1307);
+
+    // 2. 使用 digest_message 进行签名
     const { keyType, pubkey, sig } = await UP.authorize(
-      new UPAuthMessage("CKB_TX", "quaye163", message)
+      new UPAuthMessage("CKB_TX", userName, message)
     );
     console.log("keyType", keyType);
     console.log("pubkey", pubkey);
     console.log("sig", sig);
 
-    const snapinfo = await this.fnGetSnapInfo(userName);
-    console.log("snap info ", snapinfo);
-    const usernameHash = snapinfo.lock_info[0].username;
-    console.log("usernameHash", usernameHash);
-    const userinfo = snapinfo.lock_info[0].user_info;
-    console.log("userinfo", userinfo);
-    const user_info_smt_proof = snapinfo.user_info_smt_proof;
-    console.log("user_info_smt_proof", user_info_smt_proof);
-
+    // 3. 组织 Lock script’ witness 结构：https://www.notion.so/Technical-Details-of-UP-CKB-f67d2521278346b59d5b31181079f8b9
     const witnessLock = SerializeAssetLockWitness({
       pubkey: {
         type: keyType,
@@ -220,12 +252,17 @@ export class UnipassApi {
       user_info_smt_proof: new Reader(user_info_smt_proof), // smt proof from snapshot url
     });
 
-    console.log("witness", witnessLock);
+    console.log("witness", witnessLock.byteLength, witnessLock);
+    // 4. 添加 cell_deps
     const cell_deps = snapinfo.cell_deps;
     unSignedTx.cell_deps.push(...cell_deps);
+
+    // 5. 替换 witnesses
     unSignedTx.witnesses[0] = new Reader(
       SerializeWitnessArgs(
         normalizers.NormalizeWitnessArgs({
+          // 疑问： 这里的 witnessArgs 从何而来？
+          // ...(signedTx.witnessArgs[0] as WitnessArgs),
           lock: witnessLock,
         })
       )

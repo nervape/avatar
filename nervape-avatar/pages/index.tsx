@@ -397,22 +397,26 @@ export default class Home extends Component<HomeProps, HomeState> {
           <button
             onClick={async () => {
               console.log("click ------------------ in");
-              const userName = this.state.UnipassUserName;
-              // const test_tx = `{"version":"0x0","cell_deps":[{"out_point":{"tx_hash":"0xf11ccb6079c1a4b3d86abe2c574c5db8d2fd3505fdc1d5970b69b31864a4bd1c","index":"0x2"},"dep_type":"code"}],"header_deps":[],"inputs":[{"previous_output":{"tx_hash":"0xb0877934de419d3c0a87c189eaed464998338f165ba5f85168e50887af033a68","index":"0x1"},"since":"0x0"}],"outputs":[{"capacity":"0x31eb3a4cc","lock":{"code_hash":"0x3e1eb7ed4809b2d60650be96a40abfbdafb3fb942b7b37ec7709e64e2cd0a783","args":"0x37babc350825c4994919330f0bdd095672e709f0","hash_type":"type"},"type":{"code_hash":"0xb1837b5ad01a88558731953062d1f5cb547adf89ece01e8934a9f0aeed2d959f","args":"0x53b9a6b381e5f02408ab81bea5462c179f475b7b0000000900000002","hash_type":"type"}}],"outputs_data":["0x000000000000000000c000"],"witnesses":["0x"]}`;
-              // const tx_clone = JSON.parse(test_tx);
+              const from =
+                "ckt1qqlpadldfqym94sx2zlfdfq2h776lvlmjs4hkdlvwuy7vn3v6zncxqfvtmp0wppt5gax2ffl8nepj0zqrsfhn9c23dfh3";
+              const to =
+                "ckt1qqlpadldfqym94sx2zlfdfq2h776lvlmjs4hkdlvwuy7vn3v6zncxqfhh27r2zp9cjv5jxfnpu9a6z2kwtnsnuqdr77rp";
+              const token = "cf6db826-1533-4e87-b728-55e0bafb6d67";
+              const userName = "quaye163";
+              const test_tx = `{"version":"0x0","cell_deps":[{"out_point":{"tx_hash":"0xf11ccb6079c1a4b3d86abe2c574c5db8d2fd3505fdc1d5970b69b31864a4bd1c","index":"0x2"},"dep_type":"code"}],"header_deps":[],"inputs":[{"previous_output":{"tx_hash":"0xb0877934de419d3c0a87c189eaed464998338f165ba5f85168e50887af033a68","index":"0x1"},"since":"0x0"}],"outputs":[{"capacity":"0x31eb3a4cc","lock":{"code_hash":"0x3e1eb7ed4809b2d60650be96a40abfbdafb3fb942b7b37ec7709e64e2cd0a783","args":"0x37babc350825c4994919330f0bdd095672e709f0","hash_type":"type"},"type":{"code_hash":"0xb1837b5ad01a88558731953062d1f5cb547adf89ece01e8934a9f0aeed2d959f","args":"0x53b9a6b381e5f02408ab81bea5462c179f475b7b0000000900000002","hash_type":"type"}}],"outputs_data":["0x000000000000000000c000"],"witnesses":["0x"]}`;
+              const tx_clone = JSON.parse(test_tx);
 
-              const tx_clone = JSON.parse(this.state.transferUnsignedTx);
-              const signed_tx = await unipass.fnTranscationSinature(
+              // const userName = this.state.UnipassUserName;
+              // const tx_clone = JSON.parse(this.state.transferUnsignedTx);
+              // const from = this.state.transferFrom
+              // const to = this.state.transferTo
+              // const token =this.state.transferToken
+
+              const signed_tx = await unipass.fnTranscationSignature(
                 userName,
                 tx_clone
               );
-
-              this.fnTransfer(
-                this.state.transferFrom,
-                this.state.transferTo,
-                this.state.transferToken,
-                JSON.stringify(signed_tx)
-              );
+              this.fnTransfer(from, to, token, JSON.stringify(signed_tx));
             }}
           >
             transfer
