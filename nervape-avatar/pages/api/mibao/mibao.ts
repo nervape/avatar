@@ -187,11 +187,11 @@ export class MibaoApi {
     to_address: string,
     token_uuid: string
   ) {
-    console.log("========fnTransferTokenNew   in",)
+    console.log("========fnTransferTokenNew   in");
     const method = "GET";
     const endpoint = `${mbApiVersion}/tx/token_transfers/new?from_address=${from_address}&to_address=${to_address}&token_uuid=${token_uuid}`;
     const res = await this.fnMiBaoRequest(method, endpoint);
-    console.log("========fnTransferTokenNew   out",)
+    console.log("========fnTransferTokenNew   out");
 
     return res;
   }
@@ -210,6 +210,14 @@ export class MibaoApi {
     const endpoint = `${mbApiVersion}/tx/token_transfers`;
     const content = { from_address, to_address, token_uuid, signed_tx };
     const res = await this.fnMiBaoRequest(method, endpoint, content);
+    return res;
+  }
+
+  async fnGetTransferStatus(tx_uuid: string) {
+    console.log("tx_uuid:", tx_uuid);
+    const method = "GET";
+    const endpoint = `${mbApiVersion}/tx/token_transfers/${tx_uuid}`;
+    const res = await this.fnMiBaoRequest(method, endpoint);
     return res;
   }
 }
